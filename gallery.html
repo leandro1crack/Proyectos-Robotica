@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leandro Rodriguez - Robótica</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+</head>
+<body>
+
+  <!-- LOADING SCREEN -->
+  <div id="loading-screen">
+    <div class="loader-inner">
+      <div class="loader-logo">Leandro Rodriguez</div>
+      <div class="loader-sub">ProyectoS Robótica</div>
+      <div class="loader-bar"><div class="loader-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- MENU -->
+  <div id="menu-btn">MENU</div>
+  <div id="menu-overlay">
+    <div class="menu-close">✕</div>
+    <nav class="menu-nav">
+      <a href="#" data-section="entrance">Entrada</a>
+      <a href="#" data-section="gallery1">Galeria N°1</a>
+      <a href="#" data-section="gallery2">Sitio Web</a>
+      <a href="#" data-section="about"></a>
+    </nav>
+    <div class="menu-footer">si ves esto sos un crack</div>
+    <img src="assets/pichones_logo.png" style="position:fixed;bottom:24px;left:28px;width:220px;opacity:0.85;pointer-events:none;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.7));" alt="Los Pichones Army" />
+  </div>
+
+  <!-- ARTWORK MODAL (Zoom + Canva link) -->
+  <div id="artwork-modal">
+    <div class="modal-close">✕</div>
+    <div class="modal-image-wrap">
+      <img id="modal-img" src="" alt="" />
+    </div>
+    <div class="modal-info">
+      <h2 id="modal-title">Obra</h2>
+      <p id="modal-desc">Descripción de la obra.</p>
+      <a id="modal-canva-link" href="#" target="_blank" class="modal-btn">Ver en Canva →</a>
+    </div>
+  </div>
+
+  <!-- HINT -->
+  <div id="hint">Acércate a los círculos bajo los cuadros</div>
+
+  <!-- JOYSTICK / MOVE BUTTON (mobile) -->
+  <div id="joystick-zone">
+    <div id="joystick-btn"></div>
+  </div>
+
+  <!-- THREE.JS CANVAS -->
+  <canvas id="gallery-canvas"></canvas>
+
+  <!-- CONFIG: fácil de editar -->
+  <script src="js/config.js"></script>
+  <!-- CHARACTER -->
+  <script src="js/character.js"></script>
+  <!-- GALLERY -->
+  <script src="js/gallery.js"></script>
+  <!-- NPC -->
+  <script src="js/npc.js"></script>
+  <!-- MAIN -->
+  <script src="js/main.js"></script>
+</body>
+</html>

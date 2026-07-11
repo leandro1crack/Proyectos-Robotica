@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Leandro Rodriguez — Proyectos</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Mono:wght@300;400&display=swap">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #000; overflow: hidden; width: 100vw; height: 100vh; }
+
+    #intro-canvas { position: fixed; inset: 0; display: block; width: 100%; height: 100%; }
+
+    /* Scanlines */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.04) 0px, rgba(0,0,0,0.04) 1px, transparent 1px, transparent 3px);
+      pointer-events: none; z-index: 50;
+    }
+
+    /* Vignette */
+    #vignette {
+      position: fixed; inset: 0; z-index: 40; pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.75) 100%);
+    }
+
+    /* UI encima */
+    #ui {
+      position: fixed; inset: 0; z-index: 60;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+
+    #museum-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1.8rem, 5vw, 3.5rem);
+      font-weight: 300;
+      letter-spacing: 0.2em;
+      color: #e8e4dc;
+      text-align: center;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 1.2s ease, transform 1.2s ease;
+      text-shadow: 0 2px 30px rgba(0,0,0,0.8);
+      margin-bottom: 8px;
+    }
+    #museum-title.visible { opacity: 1; transform: translateY(0); }
+
+    #museum-sub {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.4em;
+      color: rgba(200,160,60,0.7);
+      text-transform: uppercase;
+      opacity: 0;
+      transition: opacity 1s ease 0.4s;
+      margin-bottom: 60px;
+    }
+    #museum-sub.visible { opacity: 1; }
+
+    #enter-hint {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
+      color: rgba(220,210,190,0.6);
+      text-transform: uppercase;
+      opacity: 0;
+      transition: opacity 1s ease;
+      animation: pulse 2s ease-in-out infinite;
+      pointer-events: all;
+      cursor: pointer;
+      border: 1px solid rgba(200,160,60,0.25);
+      padding: 14px 40px;
+    }
+    #enter-hint.visible { opacity: 1; }
+    #enter-hint:hover { border-color: rgba(200,160,60,0.5); color: rgba(200,160,60,0.9); }
+    @keyframes pulse { 0%,100% { opacity: 0.6; } 50% { opacity: 1; } }
+
+    /* Esquinas */
+    .corner { position: fixed; width: 22px; height: 22px; opacity: 0.25; z-index: 60; }
+    .corner-tl { top: 20px; left: 20px; border-top: 1px solid #c8a03c; border-left: 1px solid #c8a03c; }
+    .corner-tr { top: 20px; right: 20px; border-top: 1px solid #c8a03c; border-right: 1px solid #c8a03c; }
+    .corner-bl { bottom: 20px; left: 20px; border-bottom: 1px solid #c8a03c; border-left: 1px solid #c8a03c; }
+    .corner-br { bottom: 20px; right: 20px; border-bottom: 1px solid #c8a03c; border-right: 1px solid #c8a03c; }
+
+    /* Fade */
+    #fade {
+      position: fixed; inset: 0; z-index: 200;
+      background: #000; opacity: 1; pointer-events: none;
+      transition: opacity 1.5s ease;
+    }
+    #fade.clear { opacity: 0; }
+    #fade.black { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<canvas id="intro-canvas"></canvas>
+<div id="vignette"></div>
+
+<div class="corner corner-tl"></div>
+<div class="corner corner-tr"></div>
+<div class="corner corner-bl"></div>
+<div class="corner corner-br"></div>
+
+<div id="ui">
+  <div id="museum-title">MUSEO DE PROYECTOS</div>
+  <div id="museum-sub">Leandro Rodriguez</div>
+  <div id="enter-hint">[ ENTER ] &nbsp; Ingresar</div>
+</div>
+
+<div id="fade"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const fade = $("fade");
+
+/* ── Escena ── */
+const scene    = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0908);
+scene.fog = new THREE.Fog(0x0a0908, 8, 22);
+
+const W = window.innerWidth, H = window.innerHeight;
+const camera = new THREE.PerspectiveCamera(55, W/H, 0.1, 100);
+camera.position.set(0, 1.6, 8);
+camera.lookAt(0, 1.6, 0);
+
+const renderer = new THREE.WebGLRenderer({ canvas: $("intro-canvas"), antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(W, H);
+renderer.shadowMap.enabled = true;
+
+/* ── Luces ── */
+scene.add(new THREE.AmbientLight(0xfff5e0, 0.4));
+const dirLight = new THREE.DirectionalLight(0xfff5e0, 0.6);
+dirLight.position.set(2, 6, 4);
+scene.add(dirLight);
+
+/* Luz cálida sobre la puerta */
+const doorLight = new THREE.PointLight(0xffcc66, 1.2, 8);
+doorLight.position.set(0, 3.5, -0.5);
+scene.add(doorLight);
+
+/* ══════════════════════════════════════════
+   TEXTURAS — fácil de cambiar
+   Para usar una imagen: descomentá la línea
+   con textureLoader.load y comentá el color
+   ══════════════════════════════════════════ */
+const textureLoader = new THREE.TextureLoader();
+
+function makeTexMat(colorHex, roughness, metalness, texturePath) {
+  const mat = new THREE.MeshStandardMaterial({ color: colorHex, roughness, metalness });
+  if (texturePath) {
+    textureLoader.load(texturePath, tex => {
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(3, 2);
+      mat.map = tex; mat.needsUpdate = true;
+    });
+  }
+  return mat;
+}
+
+/* ── Cambiá los paths para poner tus texturas ── */
+const WALL_TEXTURE  = "assets/wall_color.png";   /* null = solo color */
+const FLOOR_TEXTURE = "assets/floor_texture.png"; /* null = solo color */
+
+const stoneMat = makeTexMat(0x7a7670, 0.95, 0,    WALL_TEXTURE);
+const floorMat = makeTexMat(0x555250, 0.7,  0.05, FLOOR_TEXTURE);
+const darkMat  = new THREE.MeshStandardMaterial({ color: 0x1a1816, roughness: 0.8,  metalness: 0.1 });
+const frameMat = new THREE.MeshStandardMaterial({ color: 0x2a2520, roughness: 0.4,  metalness: 0.5 });
+const goldMat  = new THREE.MeshStandardMaterial({ color: 0xc8a03c, roughness: 0.3,  metalness: 0.8 });
+
+/* ── Sala ── */
+const roomW = 6, roomH = 5, roomD = 14;
+
+/* Piso */
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomW, roomD), floorMat);
+floor.rotation.x = -Math.PI/2; floor.receiveShadow = true;
+scene.add(floor);
+
+/* Techo */
+const ceil = new THREE.Mesh(new THREE.PlaneGeometry(roomW, roomD),
+  new THREE.MeshStandardMaterial({ color: 0x111010, roughness: 0.95 }));
+ceil.rotation.x = Math.PI/2; ceil.position.y = roomH;
+scene.add(ceil);
+
+/* Paredes laterales */
+[-roomW/2, roomW/2].forEach((x, i) => {
+  const w = new THREE.Mesh(new THREE.PlaneGeometry(roomD, roomH), stoneMat);
+  w.rotation.y = i === 0 ? Math.PI/2 : -Math.PI/2;
+  w.position.set(x, roomH/2, 0);
+  scene.add(w);
+});
+
+/* Pared del fondo con hueco de puerta */
+const doorW = 1.6, doorH = 2.8;
+const wallZ = -roomD/2;
+const sideW = (roomW - doorW) / 2;
+
+// lados
+[-1,1].forEach(s => {
+  const sw = new THREE.Mesh(new THREE.PlaneGeometry(sideW, roomH), stoneMat);
+  sw.position.set(s * (doorW/2 + sideW/2), roomH/2, wallZ);
+  scene.add(sw);
+});
+// parte superior
+const topH = roomH - doorH;
+const tw = new THREE.Mesh(new THREE.PlaneGeometry(roomW, topH), stoneMat);
+tw.position.set(0, roomH - topH/2, wallZ);
+scene.add(tw);
+
+/* Oscuridad detrás de la puerta */
+const dark = new THREE.Mesh(new THREE.PlaneGeometry(doorW, doorH),
+  new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 1 }));
+dark.position.set(0, doorH/2, wallZ - 0.01);
+scene.add(dark);
+
+
+
+/* ── PUERTA (dos hojas) ── */
+const halfW = doorW/2, leafH = doorH, leafD = 0.06;
+const doorMat = new THREE.MeshStandardMaterial({ color: 0x1e1a15, roughness: 0.5, metalness: 0.3 });
+const knockerMat = new THREE.MeshStandardMaterial({ color: 0xb89030, roughness: 0.2, metalness: 0.9 });
+
+/* ── Texturas de puerta ── */
+const doorTexL = textureLoader.load("assets/door_left.png");
+const doorTexR = textureLoader.load("assets/door_right.png");
+doorTexL.flipY = true;
+doorTexR.flipY = true;
+
+/* ── Puertas de ascensor (deslizantes) ── */
+const doorMesh = (side) => {
+  const g = new THREE.Group();
+  const tex = side === -1 ? doorTexL : doorTexR;
+  const texMat = new THREE.MeshStandardMaterial({
+    map: tex, roughness: 0.6, metalness: 0.05,
+  });
+  const leaf = new THREE.Mesh(new THREE.BoxGeometry(halfW - 0.01, leafH, leafD), texMat);
+  g.add(leaf);
+  g.position.set(side * halfW/2, leafH/2, wallZ + leafD/2);
+  return g;
+};
+
+const doorL = doorMesh(-1);
+const doorR = doorMesh( 1);
+scene.add(doorL);
+scene.add(doorR);
+/* posiciones iniciales y target */
+const doorLStartX =  -halfW/2;
+const doorRStartX =   halfW/2;
+const doorLEndX   = -(halfW + 0.05);
+const doorREndX   =   halfW + 0.05;
+
+/* Luz dorada filtrada debajo de la puerta */
+const gapLight = new THREE.PointLight(0xffaa33, 0.5, 3);
+gapLight.position.set(0, 0.05, wallZ - 0.1);
+scene.add(gapLight);
+
+/* ── Antorchas — llama geométrica + luz (GLB se carga encima) ── */
+const torches = [];
+
+function makeTorchFlame(x, y, z) {
+  const g = new THREE.Group();
+  const flame = new THREE.Mesh(
+    new THREE.ConeGeometry(0.05, 0.18, 8),
+    new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0xff4400, emissiveIntensity: 2.5, transparent: true, opacity: 0.9 })
+  );
+  flame.position.y = 0.09;
+  g.add(flame);
+  const light = new THREE.PointLight(0xff6600, 0.9, 5);
+  g.add(light);
+  g.position.set(x, y, z);
+  scene.add(g);
+  return { flame, light };
+}
+
+const torchPositions = [
+  { x: -roomW/2 + 0.15, y: 2.1, z: -2 },
+  { x:  roomW/2 - 0.15, y: 2.1, z: -2 },
+  { x: -roomW/2 + 0.15, y: 2.1, z:  2 },
+  { x:  roomW/2 - 0.15, y: 2.1, z:  2 },
+];
+
+torchPositions.forEach(p => torches.push(makeTorchFlame(p.x, p.y, p.z)));
+
+/* Cargar modelo GLB de antorcha */
+const torchScript = document.createElement("script");
+torchScript.src = "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js";
+torchScript.onload = () => {
+  const loader = new THREE.GLTFLoader();
+  loader.load("assets/torch.glb", gltf => {
+    torchPositions.forEach(p => {
+      const model = gltf.scene.clone();
+      /* calcular tamaño y centrar */
+      const box = new THREE.Box3().setFromObject(model);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const scale = 0.4 / maxDim;   /* escalar a ~0.4 unidades */
+      model.scale.setScalar(scale);
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+      model.position.set(
+        p.x - center.x * scale,
+        p.y - box.min.y * scale,
+        p.z - center.z * scale
+      );
+      model.traverse(child => {
+        if (child.isMesh) {
+          child.castShadow = true;
+        }
+      });
+      scene.add(model);
+    });
+    console.log("✅ Antorchas GLB cargadas");
+  }, undefined, err => console.warn("Antorcha GLB no cargó:", err));
+};
+document.head.appendChild(torchScript);
+
+/* ── Cartel sobre la puerta ── */
+const signCanvas = document.createElement("canvas");
+signCanvas.width = 512; signCanvas.height = 128;
+const sctx = signCanvas.getContext("2d");
+sctx.fillStyle = "#1a1510";
+sctx.fillRect(0,0,512,128);
+sctx.strokeStyle = "#c8a03c";
+sctx.lineWidth = 4;
+sctx.strokeRect(6,6,500,116);
+sctx.fillStyle = "#e8dcc0";
+sctx.font = "bold 38px Georgia, serif";
+sctx.textAlign = "center";
+sctx.fillText("MUSEO DE PROYECTOS", 256, 58);
+sctx.font = "italic 18px Georgia, serif";
+sctx.fillStyle = "#c8a03c";
+sctx.fillText("Leandro Rodriguez", 256, 96);
+const signTex = new THREE.CanvasTexture(signCanvas);
+const sign = new THREE.Mesh(
+  new THREE.PlaneGeometry(1.8, 0.45),
+  new THREE.MeshStandardMaterial({ map: signTex, roughness: 0.9 })
+);
+sign.position.set(0, doorH + 0.38, wallZ + 0.02);
+scene.add(sign);
+
+/* ── Animación ── */
+let state       = "idle";   // idle → opening → advancing → done
+let openAngle   = 0;
+let camZ        = 8;
+let camTargetZ  = 8;
+let entered     = false;
+
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getDelta();
+  const elapsed = clock.elapsedTime;
+
+  /* Parpadeo antorchas */
+  torches.forEach((torch, i) => {
+    const flicker = Math.sin(elapsed * 8 + i * 2.3) * 0.08;
+    torch.light.intensity = 0.8 + flicker;
+    torch.flame.scale.y   = 1 + flicker * 0.5;
+  });
+
+  /* Animación puerta abriéndose */
+  if (state === "opening") {
+    openAngle += t * 0.9;  /* 0..1 progreso */
+    if (openAngle >= 1) { openAngle = 1; state = "advancing"; }
+
+    /* deslizar puertas hacia los costados */
+    doorL.position.x = doorLStartX + (doorLEndX - doorLStartX) * openAngle;
+    doorR.position.x = doorRStartX + (doorREndX - doorRStartX) * openAngle;
+
+    /* luz que aparece al abrir */
+    doorLight.intensity = 0.8 + openAngle * 1.4;
+  }
+
+  /* Cámara avanza */
+  if (state === "advancing") {
+    camTargetZ = -roomD/2 - 2;
+    camZ += (camTargetZ - camZ) * 0.012;
+    camera.position.z = camZ;
+
+    if (camZ < -roomD/2 + 1) {
+      state = "done";
+      /* Fade a negro y cargar galería */
+      fade.style.transition = "opacity 1s ease";
+      fade.classList.remove("clear");
+      setTimeout(() => { window.location.href = "gallery.html"; }, 1200);
+    }
+  }
+
+  /* Idle: suave oscilación de cámara */
+  if (state === "idle") {
+    camera.position.x = Math.sin(elapsed * 0.15) * 0.08;
+    camera.position.y = 1.6 + Math.sin(elapsed * 0.22) * 0.03;
+  }
+
+  camera.lookAt(0, 1.6, -100);
+  renderer.render(scene, camera);
+}
+
+animate();
+
+/* ── UI reveal ── */
+setTimeout(() => {
+  fade.style.transition = "opacity 1.5s ease";
+  fade.classList.add("clear");
+}, 300);
+
+setTimeout(() => {
+  $("museum-title").classList.add("visible");
+  $("museum-sub").classList.add("visible");
+}, 1200);
+
+setTimeout(() => $("enter-hint").classList.add("visible"), 2500);
+
+/* ── Trigger entrada ── */
+function startEnter() {
+  if (entered) return;
+  entered = true;
+  $("ui").style.transition = "opacity 0.8s ease";
+  $("ui").style.opacity = "0";
+  setTimeout(() => { state = "opening"; }, 600);
+}
+
+$("enter-hint").addEventListener("click", startEnter);
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === " ") startEnter();
+});
+document.addEventListener("touchend", () => {
+  if ($("enter-hint").classList.contains("visible")) startEnter();
+});
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
