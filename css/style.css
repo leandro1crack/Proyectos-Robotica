@@ -1,0 +1,294 @@
+/* =====================================================
+   THEVERTMENTHE — GALLERY CSS
+   Fácil de personalizar: busca las secciones marcadas
+   ===================================================== */
+
+/* ── VARIABLES GLOBALES (personalizar acá) ─────────── */
+:root {
+  --bg:          #f0efec;       /* color de fondo general */
+  --wall:        #dedad4;       /* color de las paredes */
+  --floor:       #c8c4bb;       /* color del piso */
+  --accent:      #1a1a1a;       /* color de acentos / texto */
+  --frame:       #111111;       /* color de los marcos */
+  --circle:      rgba(0,0,0,0.15); /* color círculos del piso */
+  --modal-bg:    #f5f3ef;       /* fondo del modal */
+  --modal-text:  #1a1a1a;       /* texto del modal */
+  --menu-bg:     #1a1a1a;       /* fondo del menú */
+  --menu-text:   #f0efec;       /* texto del menú */
+  --btn-bg:      #1a1a1a;
+  --btn-text:    #f0efec;
+
+  /* Tipografía (cambiar las Google Fonts en main.js si querés) */
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body:    'DM Mono', 'Courier New', monospace;
+}
+
+/* ── RESET & BASE ───────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  font-family: var(--font-body);
+  overflow: hidden;
+  user-select: none;
+}
+
+#gallery-canvas {
+  position: fixed;
+  inset: 0;
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* ── LOADING SCREEN ─────────────────────────────────── */
+#loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.8s ease;
+}
+#loading-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.loader-inner {
+  text-align: center;
+  color: var(--bg);
+}
+.loader-logo {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 6vw, 4rem);
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+.loader-sub {
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  margin-bottom: 32px;
+}
+.loader-bar {
+  width: 200px;
+  height: 1px;
+  background: rgba(255,255,255,0.2);
+  margin: 0 auto;
+  overflow: hidden;
+}
+.loader-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--bg);
+  animation: loadAnim 1.8s ease forwards;
+}
+@keyframes loadAnim {
+  to { width: 100%; }
+}
+
+/* ── MENU BUTTON ────────────────────────────────────── */
+#menu-btn {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 200;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  cursor: pointer;
+  padding: 8px 16px;
+  background: var(--accent);
+  color: var(--bg);
+  transition: opacity 0.2s;
+}
+#menu-btn:hover { opacity: 0.7; }
+
+/* ── MENU OVERLAY ───────────────────────────────────── */
+#menu-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: var(--menu-bg);
+  color: var(--menu-text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transform: translateX(100%);
+  transition: transform 0.5s cubic-bezier(0.77,0,0.18,1);
+}
+#menu-overlay.open { transform: translateX(0); }
+.menu-close {
+  position: absolute;
+  top: 24px;
+  right: 28px;
+  font-size: 1.4rem;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+.menu-close:hover { opacity: 1; }
+.menu-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+.menu-nav a {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  color: var(--menu-text);
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  transition: opacity 0.2s;
+}
+.menu-nav a:hover { opacity: 0.5; }
+.menu-footer {
+  position: absolute;
+  bottom: 24px;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  opacity: 0.3;
+}
+
+/* ── ARTWORK MODAL ──────────────────────────────────── */
+#artwork-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: var(--modal-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  padding: 40px;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.96);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+#artwork-modal.open {
+  opacity: 1;
+  pointer-events: all;
+  transform: scale(1);
+}
+.modal-close {
+  position: absolute;
+  top: 24px;
+  right: 28px;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: var(--modal-text);
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+.modal-close:hover { opacity: 1; }
+.modal-image-wrap {
+  flex: 0 0 auto;
+  max-width: 45vw;
+  max-height: 80vh;
+  border: 3px solid var(--frame);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#modal-img {
+  max-width: 100%;
+  max-height: 80vh;
+  display: block;
+  object-fit: contain;
+}
+.modal-info {
+  flex: 1;
+  max-width: 360px;
+  color: var(--modal-text);
+}
+#modal-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  margin-bottom: 16px;
+  font-weight: 400;
+}
+#modal-desc {
+  font-size: 0.78rem;
+  line-height: 1.8;
+  opacity: 0.7;
+  margin-bottom: 32px;
+}
+.modal-btn {
+  display: inline-block;
+  padding: 12px 28px;
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+.modal-btn:hover { opacity: 0.7; }
+
+/* ── HINT ───────────────────────────────────────────── */
+#hint {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  opacity: 0.5;
+  pointer-events: none;
+  animation: hintFade 3s ease 2.5s forwards;
+}
+@keyframes hintFade {
+  0%   { opacity: 0.5; }
+  80%  { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+
+/* ── JOYSTICK (MOBILE) ──────────────────────────────── */
+#joystick-zone {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 100;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: none;
+}
+#joystick-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* ── RESPONSIVE ─────────────────────────────────────── */
+@media (max-width: 700px) {
+  #artwork-modal {
+    flex-direction: column;
+    padding: 24px 16px;
+    gap: 20px;
+  }
+  .modal-image-wrap {
+    max-width: 90vw;
+    max-height: 45vh;
+  }
+  .modal-info {
+    max-width: 90vw;
+    text-align: center;
+  }
+}
